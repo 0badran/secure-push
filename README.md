@@ -20,7 +20,7 @@ A Gemini CLI skill for safely building, reviewing, generating conventional commi
 Make the skill available globally across all your projects:
 
 ```bash
-gemini skills install https://github.com/0badran/push-skill.git --scope user
+git clone https://github.com/0badran/push-skill.git ~/.gemini/config/skills/push
 ```
 
 ### Workspace Scope
@@ -28,7 +28,7 @@ gemini skills install https://github.com/0badran/push-skill.git --scope user
 Install only for the current project:
 
 ```bash
-gemini skills install https://github.com/0badran/push-skill.git --scope workspace
+git clone https://github.com/0badran/push-skill.git .agents/skills/push
 ```
 
 ---
