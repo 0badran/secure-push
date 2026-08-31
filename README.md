@@ -13,11 +13,23 @@ A Gemini CLI skill for safely building, reviewing, generating conventional commi
 
 ---
 
+## 📋 Prerequisites
+
+- Ensure **Git** is installed on your system. You can verify with:
+
+  ```bash
+  git --version
+  ```
+
+---
+
 ## 📦 Installation
 
-### User Scope (Recommended)
+Open your **Terminal** and run one of the following commands:
 
-Make the skill available globally across all your projects:
+### Global / User Scope (Recommended)
+
+Make the skill available globally across all your projects in **Gemini / Google Antigravity**:
 
 ```bash
 git clone https://github.com/0badran/push-skill.git ~/.gemini/config/skills/push
@@ -25,7 +37,7 @@ git clone https://github.com/0badran/push-skill.git ~/.gemini/config/skills/push
 
 ### Workspace Scope
 
-Install only for the current project:
+Install only for the current project **(Make sure you are in the project's root directory)**:
 
 ```bash
 git clone https://github.com/0badran/push-skill.git .agents/skills/push
