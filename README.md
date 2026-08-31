@@ -32,7 +32,7 @@ Open your **Terminal** and run one of the following commands:
 Make the skill available globally across all your projects in **Gemini / Google Antigravity**:
 
 ```bash
-git clone https://github.com/0badran/push-skill.git ~/.gemini/config/skills/push
+git clone https://github.com/0badran/push.git ~/.gemini/config/skills/push
 ```
 
 ### Workspace Scope
@@ -40,7 +40,7 @@ git clone https://github.com/0badran/push-skill.git ~/.gemini/config/skills/push
 Install only for the current project **(Make sure you are in the project's root directory)**:
 
 ```bash
-git clone https://github.com/0badran/push-skill.git .agents/skills/push
+git clone https://github.com/0badran/push.git .agents/skills/push
 ```
 
 ---
