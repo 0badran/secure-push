@@ -1,21 +1,21 @@
 # Gemini Secure Push Skill
 
-A Gemini CLI skill for safely building, reviewing, generating conventional commits, and pushing project changes to a remote Git repository without breaking builds.
+A Gemini CLI / Google Antigravity skill for safely building, scanning security violations, generating conventional commits, auto-healing issues, and pushing project changes to a remote Git repository in one seamless workflow.
 
 ---
 
 ## 🚀 Features
 
-- **Pre-Push Build Check:** Automatically verifies your project's build command before committing.
-- **Conventional Commits:** Analyzes actual Git diffs to generate concise, descriptive commit messages.
-- **Interactive Safety:** Requests user confirmation before committing or pushing; stops and offers recovery options on build failures.
-- **Secret Protection:** Prevents accidental staging of `.env` files, credentials, and API keys.
+- **⚡ One-Shot Clean Execution:** Automatically inspects repository status, runs build and security checks, creates conventional commits, and pushes in a single pass when clean, reporting pushed commit details upon completion.
+- **🛡️ Security & Insecure Code Protection:** Halts on sensitive files or insecure patterns, explains the vulnerability risk, proposes best-practice remediations with clear rationale, and supports both "Fix & push" and "Fix only" with mandatory user confirmation.
+- **🔧 Pre-Push Build Verification & Auto-Healing:** Validates project builds before committing. On build failures, supports "Fix and push" (AI fixes the error and completes the push automatically) or "Fix only" (fixes locally without pushing).
+- **📝 Conventional Commits:** Analyzes actual Git diffs to generate concise, descriptive conventional commit messages.
 
 ---
 
 ## 📋 Prerequisites
 
-- Ensure **Git** is installed on your system. You can verify with:
+- Ensure **Git** is installed on your system:
 
   ```bash
   git --version
