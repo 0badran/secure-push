@@ -1,14 +1,14 @@
 ---
 name: secure-push
 description: >-
-  Safe, interactive workflow for building, generating conventional commit messages,
-  confirming changes with the user, committing, and pushing code to the remote Git repository.
+  Safe, automated workflow for security scanning, project building, conventional commit generation,
+  self-healing fixes, and pushing code to the remote Git repository.
   Use when the user wants to commit and push changes, run a pre-push build check, or execute `/secure-push`.
 ---
 
 # Secure Push Skill
 
-The `secure-push` skill provides a safe, interactive, and automated workflow to inspect changes, build the project, generate meaningful commit messages, obtain user confirmation, and push changes to the remote Git repository.
+The `secure-push` skill provides a safe, streamlined, and automated workflow to inspect code for security violations, build the project, generate conventional commit messages, automatically resolve errors when instructed, and push changes to the remote Git repository in one seamless run while reporting all pushed commit details.
 
 For in-depth safety rules, edge case resolution, and conventions, see the [Git Workflow Reference](./references/git-workflow.md).
 
@@ -17,26 +17,23 @@ For in-depth safety rules, edge case resolution, and conventions, see the [Git W
 ## Workflow Overview
 
 ```text
-[1. Inspect Repo & Diff]
-│
-▼
-[2. Run Build Check]
-│
-(Build Fails) ▼
-[3. User Confirmation]
-│
-▼
-[4. Stage & Commit]
-│
-▼
-[5. Push & Report]
+[1. Inspect Repo & Security Scan] ──(Security Violation)──► [Security Resolution: Fix & Push / Fix Only / Cancel]
+          │ (Clean)                                                       │ (User Confirms Proposed Fix)
+          ▼                                                               ▼
+[2. Run Build Check] ─────────────(Build Fails)───────────► [Build Resolution: Fix & Push / Fix Only / Cancel]
+          │ (Build Passes)                                                │
+          ▼                                                               │
+[3. Auto Stage & Conventional Commit] ◄───────────────────────────────────┘ (If Fix & Push & Build Passes)
+          │
+          ▼
+[4. Push to Remote & Report Commit Details]
 ```
 
 ---
 
 ## Step-by-Step Instructions
 
-### Step 1: Inspect the Repository
+### Step 1: Inspect the Repository & Security Scan
 
 Before making any assumptions or running git mutations:
 
@@ -64,10 +61,51 @@ Before making any assumptions or running git mutations:
    git diff --cached
    ```
 
-4. **Verify changes & security scan**:
-   - Check what files have been modified, added, or deleted.
-   - **Sensitive File Check**: Verify that no credentials, secrets, private keys, or unignored environment files (e.g., `.env`, `.env.local`, `id_rsa`, `*.pem`, `credentials.json`, `service-account.json`) are staged or about to be committed.
-   - _If sensitive files are detected, STOP immediately and alert the user._
+4. **Security Scan (Sensitive Files & Insecure Code Patterns)**:
+   - Check all modified, added, or staged files.
+   - **Sensitive Files Check**: Ensure no credentials, secrets, private keys, or unignored environment files (e.g., `.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa`, `id_ed25519`, `credentials.json`, `service-account*.json`) are about to be committed.
+   - **Insecure Code Check**: Scan diffs for exposed API keys, plaintext secrets, database credentials, dangerous hardcoded tokens, or clear security violations.
+
+5. **Handling Security Violations**:
+   If any sensitive file or insecure code pattern is detected:
+   1. **STOP immediately**. Do NOT stage, commit, or push.
+   2. **Analyze the vulnerability & identify best practices**: Assess why the code or file is insecure (threat vector, exposure risk), research and apply industry security best practices (e.g., OWASP guidelines, secret isolation via environment variables, parameterized queries, secure token storage) to formulate the optimal remediation strategy.
+   3. **Alert the user**: Show the exact file path, violating code snippet, violation reason & security risk, and recommended remediation:
+
+      ```text
+      ⚠️ Security violation detected!
+      File: <path/to/file>
+      Violating code:
+      [Code snippet showing the exposed secret or insecure code]
+
+      Violation Reason & Risk:
+      [Clear explanation of why this code is insecure and the potential security impact]
+
+      Recommended Remediation:
+      [High-level security approach to resolve the issue properly based on best practices]
+
+      How would you like to proceed?
+      1. Fix code to be secure and push
+      2. Fix code only without pushing
+      3. Cancel
+      ```
+
+   4. **Mandatory User Confirmation for Fixes**:
+      In both fix choices (1 and 2), the agent **MUST** display the proposed best-practice fix (code diff or replacement snippet) along with an explanation/rationale, and request explicit user confirmation before modifying the code:
+
+      ```text
+      Proposed security fix (Security Best Practice):
+      [Diff / Proposed secure replacement]
+
+      Rationale: [Brief explanation of how this fix eliminates the vulnerability safely]
+
+      Do you confirm applying this fix? (Yes / No)
+      ```
+
+   5. **Execute according to user selection**:
+      - **If Choice 1 confirmed**: Apply the security fix, re-run security scan, and proceed directly to Step 2 (Build Check). If the build passes, automatically commit and push.
+      - **If Choice 2 confirmed**: Apply the security fix locally in the codebase, notify the user that the code was fixed, and terminate the workflow without staging or pushing.
+      - **If Choice 3 (or user rejects the fix)**: Terminate the workflow immediately without making changes.
 
 ---
 
@@ -85,20 +123,23 @@ Never commit or push untested code that fails to build.
        - `package-lock.json` (or fallback) ➔ `npm run build`
    - **Rust**: `Cargo.toml` ➔ `cargo check` or `cargo build`
    - **Go**: `go.mod` ➔ `go build ./...`
+   - **Python**: `poetry.lock` ➔ `poetry check` / tests, `Pipfile.lock` ➔ `pipenv check`, etc.
    - **Other / Monorepo**: Inspect root config files (e.g. `Makefile`, `turbo.json`, `nx.json`).
-   - If the project does not have a build script or compile step, check for a test/check script or note that no build step is configured.
+   - If no build script or compile step exists, check for a test/check script or note that no build step was configured.
 
 2. **Run the build command**:
    - Execute the appropriate build command.
-   - **Strict Rule**: Do NOT modify code or install new dependencies just to make the build pass.
 
 ---
 
 ### Step 3: Handle Build Results
 
-#### Scenario A: Build Succeeded
+#### Scenario A: Build Succeeded (Clean Run — One-Shot Execution)
 
-1. **Generate Commit Information**:
+If the security scan and build check pass with zero issues:
+
+1. **Execute the workflow in one shot** without asking for redundant confirmations.
+2. **Generate Commit Information**:
    - **Commit Title**: Create a concise, conventional commit message (max 72 characters):
      - `feat:` for new features
      - `fix:` for bug fixes
@@ -109,75 +150,47 @@ Never commit or push untested code that fails to build.
      - `test:` for test additions/updates
      - `chore:` for build, tooling, or dependency maintenance
    - **Commit Description**: Create bullet points detailing the key changes based on the actual Git diff.
-
-2. **Present Confirmation to User**:
-   Display the following formatted summary and wait for user confirmation:
-
-   > Build passed successfully.
-   >
-   > **Commit title:** `<type>: <concise title>`
-   >
-   > **Description:**
-   >
-   > - `<bullet point 1>`
-   > - `<bullet point 2>`
-   >
-   > **Files changed:**
-   >
-   > - `<file 1>`
-   > - `<file 2>`
-   >
-   > Ready to commit and push?
-
-3. **Wait for explicit user approval** before proceeding to commit or push.
-
----
-
-#### Scenario B: Build Failed
-
-1. **STOP immediately**.
-   - Do **NOT** create a commit.
-   - Do **NOT** push anything to remote.
-   - Do **NOT** automatically modify source code to fix the problem.
-   - Do **NOT** retry the build in a loop.
-
-2. **Inform the user**:
-   - Report that the build failed.
-   - Provide the relevant error output from the build process.
-   - Provide a concise explanation of the likely cause if clearly identifiable.
-   - Show the current repository state.
-
-3. **Present exactly these 3 choices**:
-   1. **Fix and push again** — The user will fix the issue, then the skill will re-run the build and continue the workflow if it succeeds.
-   2. **Fix only** — Stop the push workflow so the user can fix the issue manually without continuing to commit/push.
-   3. **Cancel** — Close the operation without making a commit or push.
-
-4. If the user selects **"Fix and push again"**, wait for the user to make or finalize the fixes before running the build again. Do not loop or retry without user action.
-
----
-
-### Step 4: Stage and Commit
-
-Once the build has succeeded and the user has explicitly confirmed:
-
-1. **Stage files safely**:
-   - Stage modified and tracked files explicitly or add verified new files:
+3. **Stage & Commit**:
+   - Stage modified and tracked files explicitly:
 
      ```bash
      git add <file1> <file2> ...
      ```
 
-   - Avoid blind `git add -A` if untracked temporary or sensitive files exist.
+   - Commit with the generated title and description:
 
-2. **Commit with approved title and description**:
+     ```bash
+     git commit -m "<title>" -m "<description>"
+     ```
 
-   ```bash
-   git commit -m "<title>" -m "<description>"
-   ```
+4. **Proceed immediately to Step 4 (Push & Report)**.
 
 ---
 
-### Step 5: Push to Remote
+#### Scenario B: Build Failed (Build Resolution)
+
+1. **STOP immediately**.
+   - Do **NOT** commit.
+   - Do **NOT** push anything to remote.
+
+2. **Inform the user**:
+   - Report that the build failed.
+   - Provide the relevant error output from the build process.
+   - Provide a concise explanation of the likely cause.
+
+3. **Present exactly these 3 choices**:
+   1. **Fix and push** — The AI agent fixes the error, re-runs the build check, and if the build passes, automatically proceeds to commit and push without requiring manual user intervention.
+   2. **Fix only** — The AI agent fixes the error in the codebase locally, verifies the fix, but stops there without staging, committing, or pushing to remote.
+   3. **Cancel** — Abort the push operation without making changes.
+
+4. **Execute based on user selection**:
+   - If **Choice 1 ("Fix and push")**: Agent fixes the code, runs the build command again. Once the build succeeds, it automatically creates the conventional commit, pushes to remote, and reports the commit details.
+   - If **Choice 2 ("Fix only")**: Agent fixes the code, runs the build to verify, and informs the user that the fix is applied locally without committing or pushing.
+   - If **Choice 3 ("Cancel")**: Terminate immediately.
+
+---
+
+### Step 4: Stage, Commit and Push to Remote
 
 1. **Push changes**:
    - If upstream tracking exists:
@@ -194,27 +207,42 @@ Once the build has succeeded and the user has explicitly confirmed:
 
    - **Strict Safety Rule**: Never use `git push --force` or `git push -f` unless the user explicitly requested a force push.
 
-2. **On Push Success**:
-   Report the results clearly:
-   - **Commit Hash**: `git rev-parse --short HEAD`
-   - **Commit Title**: The approved commit message
-   - **Remote & Branch**: Target repository and branch name
-   - **Summary**: Brief confirmation of files and changes pushed
-
-3. **On Push Failure**:
+2. **On Push Failure**:
    - Do not blindly retry.
    - Display the Git error output.
    - Explain the likely cause (e.g., remote has newer commits requiring pull/rebase, lack of write permissions, branch protection).
-   - Ask the user how they would like to proceed.
+   - Offer the user clear recovery options (e.g., `git pull --rebase origin <branch>`).
+
+---
+
+### Step 5: Report Pushed Commit Details
+
+Upon successful push, notify the user with a complete, structured summary of what was pushed:
+
+```text
+✅ Successfully pushed to remote!
+
+- Commit: <short-hash> (<full-commit-title>)
+- Branch: <current-branch> -> <remote-name>/<current-branch>
+- Commit Message:
+  <title>
+  <description bullet points>
+- Files Changed:
+  - <file 1>
+  - <file 2>
+```
 
 ---
 
 ## Safety Checklist
 
 - [ ] Repository is valid and clean of unintended files.
+- [ ] Security scan passed (no sensitive files, API keys, or insecure code).
+- [ ] Any security violation fix was explicitly confirmed by the user with proposed code diff shown.
 - [ ] Build passed completely with zero errors.
-- [ ] No secrets or `.env` files staged.
-- [ ] Commit message accurately reflects the `git diff`.
-- [ ] User explicitly confirmed the commit title and description.
+- [ ] Conventional commit message accurately reflects the `git diff`.
+- [ ] Clean runs execute automatically in one pass and notify the user with pushed commit details.
+- [ ] "Fix and push" automatically heals the build and completes the push.
+- [ ] "Fix only" updates local code without touching the remote repository.
 - [ ] No force pushing (`--force` / `-f`).
 - [ ] No destructive Git commands used (`git reset --hard`, `git checkout --`, `git clean -fd`).

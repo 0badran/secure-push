@@ -1,6 +1,6 @@
 # Git Workflow & Safety Reference
 
-This document details the safety rules, conventional commit guidelines, build system detection protocols, and edge-case handling for the `secure-push` skill.
+This document details the safety rules, security scanning protocols, conventional commit guidelines, build system detection matrices, and edge-case handling for the `secure-push` skill.
 
 ---
 
@@ -22,9 +22,9 @@ When managing Git operations, follow these non-negotiable safety guardrails:
 
 - **NEVER** use `git push --force`, `git push -f`, or `git push --force-with-lease` unless the user explicitly and unmistakably requests a force push.
 
-### Sensitive File Protection
+### Sensitive File & Insecure Code Protection
 
-Before staging or committing, inspect the repository to prevent accidental credential or secret exposure.
+Before staging or committing, inspect the repository to prevent accidental credential, secret, or insecure code exposure.
 
 **Files and patterns to NEVER commit:**
 
@@ -36,16 +36,11 @@ Before staging or committing, inspect the repository to prevent accidental crede
   - `id_rsa`, `id_ed25519`, `id_ecdsa`
   - `credentials.json`, `service-account*.json`, `serviceAccountKey.json`
   - `*token*`, `*secret*`, `*apiKey*` (in config files or unignored files)
+- Hardcoded sensitive values in code:
+  - Exposed database credentials, API tokens, plaintext auth keys.
 - Sensitive IDE/system files:
   - `.DS_Store`, `Thumbs.db`
   - Private developer overrides or token configs (e.g., `.npmrc` with authToken)
-
-**Action on Detection**:
-If any suspicious or sensitive file is untracked or modified:
-
-1. Immediately pause the workflow.
-2. Alert the user with the exact path(s) identified.
-3. Confirm if the file should be added to `.gitignore` before proceeding.
 
 ---
 
@@ -70,7 +65,7 @@ Before committing or pushing, detect the project type and execute the appropriat
 ### General Build Guidelines
 
 1. **Respect Existing Tooling**: Always use the package manager indicated by the existing lockfile.
-2. **No Dependency Injections**: Never run `npm install <pkg>` or alter `package.json` to resolve build errors during the push workflow.
+2. **No Dependency Injections**: Never run `npm install <pkg>` or alter `package.json` arbitrarily without context.
 3. **No Build Script Present**: If a JavaScript project lacks a `"build"` script in `package.json`, check for `"typecheck"` or `"test"`. If no compile/build step exists (e.g., plain documentation or static site), document that no build step was required.
 
 ---
@@ -108,41 +103,106 @@ Commit messages must accurately summarize the diff.
 
 ---
 
-## 4. Build Failure Dialogue Protocol
+## 4. Failure & Security Dialogue Protocols
 
-If the pre-push build fails, follow this strict protocol:
+### Security Violation Protocol
 
-1. **Do not attempt auto-fixes.**
-2. **Do not modify source files.**
-3. **Present the standard failure message:**
+If any sensitive file or insecure code pattern is detected in the diff:
 
-```text
-Build failed!
+1. Immediately halt the workflow before staging or committing.
+2. **Analyze the vulnerability & identify best practices**: Assess why the code or file is insecure (threat vector, exposure risk), research and apply industry security best practices (e.g., OWASP guidelines, secret isolation via environment variables, parameterized queries, secure token storage) to formulate the optimal remediation strategy.
+3. **Present the security alert**:
 
-Error summary:
-[Extracted compiler / linter / build error message]
+   ```text
+   ⚠️ Security Violation Detected!
 
-Likely cause:
-[Concise explanation of the failure]
+   File: [file path]
+   Violating code snippet:
+   [Code snippet showing the exposed credential or insecure pattern]
 
-Repository status:
-- Current branch: <branch>
-- Uncommitted changes preserved.
+   Violation Reason & Risk:
+   [Clear explanation of why this code is insecure and the potential security impact]
 
-How would you like to proceed?
-1. Fix and push again — You can make the fixes, and I will re-run the build and push once ready.
-2. Fix only — Stop the push workflow so you can resolve the issue manually.
-3. Cancel — Abort the push operation without making any changes.
-```
+   Recommended Remediation:
+   [High-level security approach to resolve the issue properly based on best practices]
 
-1. **Handling Options:**
-   - **Choice 1 ("Fix and push again")**: Wait for the user to make/finalize the fixes, then re-execute the build step.
-   - **Choice 2 ("Fix only")**: Terminate the push workflow cleanly. Do not stage or push.
-   - **Choice 3 ("Cancel")**: Terminate the workflow immediately.
+   How would you like to proceed?
+   1. Fix code to be secure and push — Fix the security issue, verify, and proceed with commit & push.
+   2. Fix code only without pushing — Fix the issue locally in the codebase without committing or pushing.
+   3. Cancel — Abort the operation.
+   ```
+
+4. **Mandatory Confirmation for Proposed Fixes**:
+   When the user chooses Option 1 or Option 2, the agent **MUST** present the proposed code changes (diff / replacement) along with the rationale and ask for explicit user confirmation:
+
+   ```text
+   Proposed security fix (Security Best Practice):
+   [Diff or code replacement snippet]
+
+   Rationale: [Brief explanation of how this fix resolves the security issue safely]
+
+   Do you confirm applying this fix? (Yes / No)
+   ```
+
+5. **Handling User Decisions**:
+   - **Option 1 Confirmed**: Apply fix -> Re-scan security -> Run build -> Automatically commit & push -> Report pushed commit.
+   - **Option 2 Confirmed**: Apply fix locally -> Notify user that code is updated -> Stop workflow cleanly.
+   - **Option 3 or Rejected**: Terminate without making changes.
 
 ---
 
-## 5. Edge Cases & Recovery Procedures
+### Build Failure Protocol
+
+If the pre-push build fails, follow this protocol:
+
+1. **Do not blindly commit broken code.**
+2. **Present the failure report and choices:**
+
+   ```text
+   Build failed!
+
+   Error summary:
+   [Extracted compiler / linter / build error message]
+
+   Likely cause:
+   [Concise explanation of the failure]
+
+   Repository status:
+   - Current branch: <branch>
+   - Uncommitted changes preserved.
+
+   How would you like to proceed?
+   1. Fix and push — The AI agent fixes the error, verifies the build, and automatically pushes upon success.
+   2. Fix only — The AI agent fixes the error locally without committing or pushing to remote.
+   3. Cancel — Abort the push operation without making changes.
+   ```
+
+3. **Handling Choices**:
+   - **Choice 1 ("Fix and push")**: The AI agent fixes the code, re-runs the build command. Upon passing, it stages, commits, pushes automatically, and notifies the user with the pushed commit details.
+   - **Choice 2 ("Fix only")**: The AI agent fixes the code locally and verifies the build, but leaves changes uncommitted for user review.
+   - **Choice 3 ("Cancel")**: Abort immediately.
+
+---
+
+## 5. One-Shot Execution & Completion Reporting
+
+When repository inspection, security scanning, and build verification all succeed with zero errors:
+
+1. **Execute in one shot**: The skill proceeds directly to staging, conventional commit creation, and pushing to remote without asking redundant approval questions.
+2. **Post-Push Notification**: Always report the pushed commit details to the user upon completion:
+
+   ```text
+   ✅ Push Completed Successfully!
+
+   - Commit: <short-hash> (<title>)
+   - Branch: <branch> -> origin/<branch>
+   - Summary:
+     <bullet points of changes pushed>
+   ```
+
+---
+
+## 6. Edge Cases & Recovery Procedures
 
 ### 1. No Upstream Tracking Branch
 
