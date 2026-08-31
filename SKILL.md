@@ -149,7 +149,7 @@ If the security scan and build check pass with zero issues:
      - `style:` for styling/formatting adjustments
      - `test:` for test additions/updates
      - `chore:` for build, tooling, or dependency maintenance
-   - **Commit Description**: Create bullet points detailing the key changes based on the actual Git diff.
+   - **Commit Description**: Create bullet points detailing the key changes based on the actual Git diff, followed by a blank line and the co-author trailer `Co-authored-by: Google Gemini <gemini@google.com>` to attribute collaboration in GitHub Contributors.
 3. **Stage & Commit**:
    - Stage modified and tracked files explicitly:
 

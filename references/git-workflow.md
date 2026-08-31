@@ -82,6 +82,8 @@ Commit messages must accurately summarize the diff.
 - <Description bullet 1>
 - <Description bullet 2>
 - <Description bullet 3>
+
+Co-authored-by: Google Gemini <gemini@google.com>
 ```
 
 ### Allowed Types
@@ -100,6 +102,7 @@ Commit messages must accurately summarize the diff.
 1. Title must be concise (ideally <= 72 characters).
 2. Title uses imperative mood: "add responsive preview" (NOT "added", NOT "adds").
 3. Bullet points in the description explain **what** changed and **why** based strictly on the inspected `git diff`.
+4. Include the `Co-authored-by: Google Gemini <gemini@google.com>` trailer at the end of the commit description to attribute AI collaboration on GitHub.
 
 ---
 
