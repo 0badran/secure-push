@@ -1,6 +1,6 @@
 # Git Workflow & Safety Reference
 
-This document details the safety rules, conventional commit guidelines, build system detection protocols, and edge-case handling for the `push` skill.
+This document details the safety rules, conventional commit guidelines, build system detection protocols, and edge-case handling for the `secure-push` skill.
 
 ---
 

@@ -1,14 +1,14 @@
 ---
-name: push
+name: secure-push
 description: >-
   Safe, interactive workflow for building, generating conventional commit messages,
   confirming changes with the user, committing, and pushing code to the remote Git repository.
-  Use when the user wants to commit and push changes, run a pre-push build check, or execute `/push`.
+  Use when the user wants to commit and push changes, run a pre-push build check, or execute `/secure-push`.
 ---
 
-# Push Skill
+# Secure Push Skill
 
-The `push` skill provides a safe, interactive, and automated workflow to inspect changes, build the project, generate meaningful commit messages, obtain user confirmation, and push changes to the remote Git repository.
+The `secure-push` skill provides a safe, interactive, and automated workflow to inspect changes, build the project, generate meaningful commit messages, obtain user confirmation, and push changes to the remote Git repository.
 
 For in-depth safety rules, edge case resolution, and conventions, see the [Git Workflow Reference](./references/git-workflow.md).
 

@@ -1,4 +1,4 @@
-# Gemini Push Skill
+# Gemini Secure Push Skill
 
 A Gemini CLI skill for safely building, reviewing, generating conventional commits, and pushing project changes to a remote Git repository without breaking builds.
 
@@ -32,7 +32,7 @@ Open your **Terminal** and run one of the following commands:
 Make the skill available globally across all your projects in **Gemini / Google Antigravity**:
 
 ```bash
-git clone https://github.com/0badran/push.git ~/.gemini/config/skills/push
+git clone https://github.com/0badran/secure-push.git ~/.gemini/config/skills/secure-push
 ```
 
 ### Workspace Scope
@@ -40,7 +40,7 @@ git clone https://github.com/0badran/push.git ~/.gemini/config/skills/push
 Install only for the current project **(Make sure you are in the project's root directory)**:
 
 ```bash
-git clone https://github.com/0badran/push.git .agents/skills/push
+git clone https://github.com/0badran/secure-push.git .agents/skills/secure-push
 ```
 
 ---
@@ -50,7 +50,7 @@ git clone https://github.com/0badran/push.git .agents/skills/push
 Invoke the skill directly in your Gemini session:
 
 ```text
-/push
+/secure-push
 ```
 
 Or ask naturally:
