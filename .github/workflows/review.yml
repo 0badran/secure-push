@@ -1,4 +1,4 @@
-name: "AI Code Review"
+name: "AI Code Review & Auto-Merge"
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
 
 permissions:
   pull-requests: write
-  contents: read
+  contents: write
 
 jobs:
   review:
@@ -20,3 +20,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Auto-merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} --merge
