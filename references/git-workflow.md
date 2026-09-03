@@ -192,15 +192,22 @@ If the pre-push build fails, follow this protocol:
 When repository inspection, security scanning, and build verification all succeed with zero errors:
 
 1. **Execute in one shot**: The skill proceeds directly to staging, conventional commit creation, and pushing to remote without asking redundant approval questions.
-2. **Post-Push Notification**: Always report the pushed commit details to the user upon completion:
+2. **Post-Push Notification**: Always report the pushed commit details along with the appropriate link upon completion:
+   - **Feature Branch**: Pull Request creation link (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`)
+   - **Main Branch (`main`/`master`)**: Main repository link (e.g. `https://github.com/<owner>/<repo>`)
 
    ```text
    ✅ Push Completed Successfully!
 
    - Commit: <short-hash> (<title>)
    - Branch: <branch> -> origin/<branch>
-   - Summary:
-     <bullet points of changes pushed>
+   - Pull Request: <pr-url> (or Repository: <repo-url> if on main/master)
+   - Commit Message:
+     <title>
+     <description bullet points>
+   - Files Changed:
+     - <file 1>
+     - <file 2>
    ```
 
 ---

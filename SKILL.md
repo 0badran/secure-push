@@ -215,15 +215,21 @@ If the security scan and build check pass with zero issues:
 
 ---
 
-### Step 5: Report Pushed Commit Details
+### Step 5: Report Pushed Commit Details & Repository / PR Link
 
-Upon successful push, notify the user with a complete, structured summary of what was pushed:
+Upon successful push, construct the appropriate link:
+
+- **Feature Branch**: Pull Request creation link (e.g., `https://github.com/<owner>/<repo>/pull/new/<current-branch>`).
+- **Main Branch (`main`/`master`)**: Main repository link (e.g., `https://github.com/<owner>/<repo>`).
+
+Notify the user with a complete, structured summary of what was pushed:
 
 ```text
 ✅ Successfully pushed to remote!
 
 - Commit: <short-hash> (<full-commit-title>)
 - Branch: <current-branch> -> <remote-name>/<current-branch>
+- Pull Request: <pr-url> (or Repository: <repo-url> if on main/master)
 - Commit Message:
   <title>
   <description bullet points>
