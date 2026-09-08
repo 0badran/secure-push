@@ -22,11 +22,11 @@ When managing Git operations, follow these non-negotiable safety guardrails:
 
 - **NEVER** use `git push --force`, `git push -f`, or `git push --force-with-lease` unless the user explicitly and unmistakably requests a force push.
 
-### Sensitive File & Insecure Code Protection
+### Sensitive File, Tracked Secret & Insecure Code Protection
 
-Before staging or committing, inspect the repository to prevent accidental credential, secret, or insecure code exposure.
+Before staging or committing, inspect the repository to prevent accidental credential, secret, or insecure code exposure across working changes, tracked index files, and unpushed commits.
 
-**Files and patterns to NEVER commit:**
+**1. Files and patterns to NEVER commit or keep tracked:**
 
 - Environment and configuration files:
   - `.env`, `.env.*` (e.g., `.env.local`, `.env.production`, `.env.test`)
@@ -42,25 +42,56 @@ Before staging or committing, inspect the repository to prevent accidental crede
   - `.DS_Store`, `Thumbs.db`
   - Private developer overrides or token configs (e.g., `.npmrc` with authToken)
 
+**2. Tracked Sensitive Files Check:**
+Run:
+
+```bash
+git ls-files --stage '*.[eE][nN][vV]*' '*.pem' '*.key' '*credentials*.json' '*service-account*.json' 'id_rsa' 'id_ed25519'
+```
+
+If any sensitive file is tracked in the Git Index, halt immediately. The remediation is to untrack it from Git while preserving the local disk copy:
+
+```bash
+git rm --cached <path/to/file>
+echo "<path/to/file>" >> .gitignore
+```
+
+**3. Unpushed Commits Scan:**
+Before pushing, verify all local unpushed commits (`@{u}..HEAD`):
+
+```bash
+git rev-parse --abbrev-ref @{u} >/dev/null 2>&1 && git diff @{u}..HEAD || git diff origin/HEAD..HEAD 2>/dev/null || true
+```
+
+Ensure no credentials or severe vulnerabilities were committed in earlier unpushed local commits.
+
+**4. High-Risk SAST Code Patterns to Detect:**
+
+- **Cross-Site Scripting (XSS)**: Unsanitized HTML rendering via `dangerouslySetInnerHTML`, `innerHTML`, `v-html`, or `outerHTML`.
+- **Reverse Tabnabbing**: External links using `target="_blank"` without `rel="noopener noreferrer"` or `rel="noreferrer"`.
+- **Insecure Cookies / Tokens**: Session or auth cookies set without `secure`, `httpOnly`, or with unsafe `sameSite` policy.
+- **SSL / Security Bypass**: Explicitly disabling certificate verification (`rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `verify=False`).
+- **Dynamic Code / Command Execution**: Unsafe `eval()`, `new Function()`, or unsanitized shell commands via `child_process.exec()`.
+
 ---
 
-## 2. Build System Detection Matrix
+## 2. Build System & Dependency Audit Matrix
 
-Before committing or pushing, detect the project type and execute the appropriate verification build.
+Before committing or pushing, detect the project type and execute the appropriate verification build and dependency security audit.
 
-| Project Type         | Detection File                        | Preferred Tool | Build Command                        |
-| :------------------- | :------------------------------------ | :------------- | :----------------------------------- |
-| **Node.js (pnpm)**   | `pnpm-lock.yaml`                      | `pnpm`         | `pnpm run build`                     |
-| **Node.js (Yarn)**   | `yarn.lock`                           | `yarn`         | `yarn build`                         |
-| **Node.js (Bun)**    | `bun.lockb` or `bun.lock`             | `bun`          | `bun run build`                      |
-| **Node.js (npm)**    | `package-lock.json` or `package.json` | `npm`          | `npm run build`                      |
-| **Rust**             | `Cargo.toml`                          | `cargo`        | `cargo check` (or `cargo build`)     |
-| **Go**               | `go.mod`                              | `go`           | `go build ./...`                     |
-| **Python (Poetry)**  | `poetry.lock`                         | `poetry`       | `poetry run pytest` / `poetry check` |
-| **Python (Pipenv)**  | `Pipfile.lock`                        | `pipenv`       | `pipenv check` / tests               |
-| **Make / C / C++**   | `Makefile`                            | `make`         | `make build` or `make`               |
-| **Monorepo (Turbo)** | `turbo.json`                          | Project PM     | `pnpm/npm/yarn turbo run build`      |
-| **Monorepo (Nx)**    | `nx.json`                             | Project PM     | `pnpm/npm/yarn nx run-many -t build` |
+| Project Type         | Detection File                        | Preferred Tool | Build Command                        | Dependency Security Audit Command       |
+| :------------------- | :------------------------------------ | :------------- | :----------------------------------- | :-------------------------------------- |
+| **Node.js (pnpm)**   | `pnpm-lock.yaml`                      | `pnpm`         | `pnpm run build`                     | `pnpm audit --audit-level=high`         |
+| **Node.js (Yarn)**   | `yarn.lock`                           | `yarn`         | `yarn build`                         | `yarn audit --level high`               |
+| **Node.js (Bun)**    | `bun.lockb` or `bun.lock`             | `bun`          | `bun run build`                      | `bun audit`                             |
+| **Node.js (npm)**    | `package-lock.json` or `package.json` | `npm`          | `npm run build`                      | `npm audit --audit-level=high`          |
+| **Rust**             | `Cargo.toml`                          | `cargo`        | `cargo check` (or `cargo build`)     | `cargo audit` (if installed)            |
+| **Go**               | `go.mod`                              | `go`           | `go build ./...`                     | `govulncheck ./...` (if installed)      |
+| **Python (Poetry)**  | `poetry.lock`                         | `poetry`       | `poetry run pytest` / `poetry check` | `pip-audit` / `poetry check`            |
+| **Python (Pipenv)**  | `Pipfile.lock`                        | `pipenv`       | `pipenv check` / tests               | `pipenv check`                          |
+| **Make / C / C++**   | `Makefile`                            | `make`         | `make build` or `make`               | N/A                                     |
+| **Monorepo (Turbo)** | `turbo.json`                          | Project PM     | `pnpm/npm/yarn turbo run build`      | Run PM audit command in root/workspaces |
+| **Monorepo (Nx)**    | `nx.json`                             | Project PM     | `pnpm/npm/yarn nx run-many -t build` | Run PM audit command in root/workspaces |
 
 ### General Build Guidelines
 
@@ -82,8 +113,6 @@ Commit messages must accurately summarize the diff.
 - <Description bullet 1>
 - <Description bullet 2>
 - <Description bullet 3>
-
-Co-authored-by: Google Gemini <gemini@google.com>
 ```
 
 ### Allowed Types
@@ -102,7 +131,7 @@ Co-authored-by: Google Gemini <gemini@google.com>
 1. Title must be concise (ideally <= 72 characters).
 2. Title uses imperative mood: "add responsive preview" (NOT "added", NOT "adds").
 3. Bullet points in the description explain **what** changed and **why** based strictly on the inspected `git diff`.
-4. Include the `Co-authored-by: Google Gemini <gemini@google.com>` trailer at the end of the commit description to attribute AI collaboration on GitHub.
+4. Commits are attributed directly to the configured user author (`git config user.name` and `user.email`).
 
 ---
 
@@ -110,7 +139,7 @@ Co-authored-by: Google Gemini <gemini@google.com>
 
 ### Security Violation Protocol
 
-If any sensitive file or insecure code pattern is detected in the diff:
+If any sensitive file, tracked secret, unpushed secret, or insecure code pattern is detected:
 
 1. Immediately halt the workflow before staging or committing.
 2. **Analyze the vulnerability & identify best practices**: Assess why the code or file is insecure (threat vector, exposure risk), research and apply industry security best practices (e.g., OWASP guidelines, secret isolation via environment variables, parameterized queries, secure token storage) to formulate the optimal remediation strategy.
@@ -121,26 +150,27 @@ If any sensitive file or insecure code pattern is detected in the diff:
 
    File: [file path]
    Violating code snippet:
-   [Code snippet showing the exposed credential or insecure pattern]
+   [Code snippet or tracked sensitive file path]
 
    Violation Reason & Risk:
-   [Clear explanation of why this code is insecure and the potential security impact]
+   [Clear explanation of why this code/file is insecure and the potential security impact]
 
    Recommended Remediation:
    [High-level security approach to resolve the issue properly based on best practices]
 
    How would you like to proceed?
-   1. Fix code to be secure and push — Fix the security issue, verify, and proceed with commit & push.
-   2. Fix code only without pushing — Fix the issue locally in the codebase without committing or pushing.
-   3. Cancel — Abort the operation.
+   1. Apply recommended fix and push (Recommended) — Fix the security issue / untrack file, verify, and proceed with commit & push.
+   2. Fix locally only without pushing — Remediate the issue locally in the codebase without committing or pushing.
+   3. Acknowledge risk and proceed anyway — The user explicitly accepts the documented security risk and pushes as-is.
+   4. Cancel — Abort the operation without making changes.
    ```
 
 4. **Mandatory Confirmation for Proposed Fixes**:
-   When the user chooses Option 1 or Option 2, the agent **MUST** present the proposed code changes (diff / replacement) along with the rationale and ask for explicit user confirmation:
+   When the user chooses Option 1 or Option 2, the agent **MUST** present the proposed code changes (diff, git untrack commands, or replacement snippet) along with the rationale and ask for explicit user confirmation:
 
    ```text
    Proposed security fix (Security Best Practice):
-   [Diff or code replacement snippet]
+   [Diff, git untrack commands, or code replacement snippet]
 
    Rationale: [Brief explanation of how this fix resolves the security issue safely]
 
@@ -148,9 +178,42 @@ If any sensitive file or insecure code pattern is detected in the diff:
    ```
 
 5. **Handling User Decisions**:
-   - **Option 1 Confirmed**: Apply fix -> Re-scan security -> Run build -> Automatically commit & push -> Report pushed commit.
+   - **Option 1 Confirmed**: Apply fix (e.g., `git rm --cached <file>` + `.gitignore` or code patch) -> Re-scan security -> Run build & audit -> Automatically commit & push -> Report pushed commit.
    - **Option 2 Confirmed**: Apply fix locally -> Notify user that code is updated -> Stop workflow cleanly.
-   - **Option 3 or Rejected**: Terminate without making changes.
+   - **Option 3 Selected**: Record explicit user acknowledgement and bypass the security alert, proceeding directly to the build and audit phase.
+   - **Option 4 or Rejected**: Terminate immediately without making changes.
+
+---
+
+### Dependency Vulnerability Protocol
+
+If a high or critical vulnerability (CVE) is detected during the package audit:
+
+1. **Inform the user**:
+   - Provide the list of vulnerable packages, severity levels, and CVE summaries.
+   - Explain the operational risk of shipping these vulnerabilities to production.
+
+2. **Present the choices**:
+
+   ```text
+   ⚠️ Critical Dependency Vulnerabilities Detected!
+
+   Vulnerabilities Summary:
+   [Package names, severities, and CVE summaries from audit]
+
+   Security Impact:
+   [Concise explanation of potential exploit vector, e.g. RCE, prototype pollution, DoS]
+
+   How would you like to proceed?
+   1. Attempt auto-fix and push — Run package audit fix, re-verify build & audit, and push upon resolution.
+   2. Acknowledge dependency risks and proceed — Continue with push despite package warnings.
+   3. Cancel — Abort the push operation to review dependencies manually.
+   ```
+
+3. **Handle User Decisions**:
+   - **Option 1**: Run `npm audit fix` (or ecosystem equivalent) -> Re-run build and audit. If clean, proceed to commit and push.
+   - **Option 2**: User accepts the risk -> Proceed to staging, commit, and push.
+   - **Option 3**: Terminate immediately.
 
 ---
 
@@ -200,6 +263,7 @@ When repository inspection, security scanning, and build verification all succee
    ✅ Push Completed Successfully!
 
    - Commit: <short-hash> (<title>)
+   - Author: <author-name> <<author-email>>
    - Branch: <branch> -> origin/<branch>
    - Pull Request: <pr-url> (or Repository: <repo-url> if on main/master)
    - Commit Message:

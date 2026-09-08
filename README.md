@@ -4,16 +4,19 @@ A Gemini CLI / Google Antigravity skill for safely building, scanning security v
 
 ---
 
-## 🚀 Features
+## Features
 
-- **⚡ One-Shot Clean Execution:** Automatically inspects repository status, runs build and security checks, creates conventional commits, and pushes in a single pass when clean, reporting pushed commit details upon completion.
-- **🛡️ Security & Insecure Code Protection:** Halts on sensitive files or insecure patterns, explains the vulnerability risk, proposes best-practice remediations with clear rationale, and supports both "Fix & push" and "Fix only" with mandatory user confirmation.
-- **🔧 Pre-Push Build Verification & Auto-Healing:** Validates project builds before committing. On build failures, supports "Fix and push" (AI fixes the error and completes the push automatically) or "Fix only" (fixes locally without pushing).
-- **📝 Conventional Commits:** Analyzes actual Git diffs to generate concise, descriptive conventional commit messages.
+- **One-Shot Clean Execution:** Automatically inspects repository status, runs build and security checks, creates conventional commits, and pushes in a single pass when clean, reporting full pushed commit details (author, hash, PR/repo link).
+- **Deep Security & Tracked Secret Detection:** Prevents accidental credential exposure across modified files, unpushed commits (`@{u}..HEAD`), and files already tracked in the Git Index (`.env*`, `*.pem`, `*.key`, `service-account*.json`).
+- **Proactive SAST Code Inspection:** Catches high-risk security patterns in code diffs, including XSS (`dangerouslySetInnerHTML`), reverse tabnabbing (`target="_blank"` without `rel`), insecure cookies, and SSL bypasses.
+- **Dependency Vulnerability Audits:** Runs package manager audits (`npm audit --audit-level=high`, `cargo audit`, `pip-audit`) alongside builds to detect critical CVEs before shipping.
+- **Informed User Empowerment:** Explains vulnerability risks clearly and puts the user in full control with choices to apply recommended fixes, fix locally, acknowledge risks & proceed, or cancel.
+- **Pre-Push Build Verification & Auto-Healing:** Validates project builds before committing. On build failures, supports "Fix and push" (AI fixes the error and completes the push automatically) or "Fix only" (fixes locally without pushing).
+- **Clean Conventional Commits:** Analyzes actual Git diffs to generate concise conventional commit messages, directly attributed to your configured Git author.
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Ensure **Git** is installed on your system:
 
@@ -23,7 +26,7 @@ A Gemini CLI / Google Antigravity skill for safely building, scanning security v
 
 ---
 
-## 📦 Installation
+## Installation
 
 Open your **Terminal** and run one of the following commands:
 
@@ -45,7 +48,7 @@ git clone https://github.com/0badran/secure-push.git .agents/skills/secure-push
 
 ---
 
-## 🎯 Usage
+## Usage
 
 Invoke the skill directly in your Gemini session:
 
